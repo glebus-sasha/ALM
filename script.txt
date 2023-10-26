@@ -1,0 +1,76 @@
+cd /home/alexandr/Downloads/063_annotator1
+sudo openvpn externalwork3-client.conf
+ssh oxkolpakova@pbx3
+source activate alm
+export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
+scp -r /home/alexandr/Downloads/ALM/GCF_000001405.40_GRCh38.p14_genomic.fna oxkolpakova@pbx3:/home/oxkolpakova/data
+
+datasets-cli download genome accession GCF_000001405.40 --include gff3,genome --filename GCF_000001405.40.zip
+
+
+# star_index.sh
+#!/bin/bash
+STAR --runThreadN 12 \
+	--runMode genomeGenerate \
+	--genomeDir  /home/oxkolpakova/data/references/STAR_indes_human/ \
+	--sjdbGTFfile /home/oxkolpakova/data/references/phytophthora.gff \
+	--genomeFastaFiles /home/oxkolpakova/data/references/phytophthora.fna
+
+# aline_star.sh
+#!/bin/bash
+/home/doka-test/data/STAR/source/STAR \
+	--genomeDir  /home/oxkolpakova/data/references/
+	--readFilesIn /home/doka-test/data/RNA_S5129Nr33.1.fastq.gz /home/doka-test/data/RNA_S5129Nr33.2.fastq.gz \
+	--readFilesCommand zcat \
+	--outSAMtype BAM SortedByCoordinate \
+	--genomeSAindexNbases 12 \
+	--quantMode GeneCounts \
+	--outFileNamePrefix /home/oxkolpakova/data/result/human/ \
+	--runThreadN 20 \
+	--outReadsUnmapped Fastx
+
+conda install -c bioconda bwa-mem2
+bwa-mem2 index human.fna
+
+Я хочу выравнить мои файлы с парными ридами на геном человека с помощью STAR, можешь написать команду?
+Путь до референса fna:
+/home/oxkolpakova/data/references/human.fna
+Путь до файла разметки gtf:
+/home/oxkolpakova/data/references/genomic.gtf
+Путь до первого рида R1:
+/home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz
+Путь до второго рида R2:
+/home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz
+Путь до выходных файлов:
+/home/oxkolpakova/data/result/human
+Путь до невыравненных ридов:
+/home/oxkolpakova/data/result/unmapped
+
+bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz > /home/oxkolpakova/data/result/human/alignment.sam
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
