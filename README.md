@@ -17,13 +17,21 @@ bwa mem index human.fna
 ```
 ## Качество
 ```
-  trimmomatic PE -threads 4 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
-    R1.qc.fq.gz s1_se \
-    R2.qc.fq.gz s2_se \
-    ILLUMINACLIP:adapters.fa:2:40:15 \ # Путь к файлу с адаптерами
+trimmomatic PE -threads 4 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+    results/trimmomatic/R1.qc.fq.gz results/trimmomatic/s1_se \
+    results/trimmomatic/R2.qc.fq.gz results/trimmomatic/s2_se \
+    ILLUMINACLIP:adapters.fa:2:40:15 \ 
     LEADING:2 TRAILING:2 \
-    SLIDINGWINDOW:4:25 \ # Опция для обрезки качества
-    MINLEN:50 # Минимальная длина рида после обработки
+    SLIDINGWINDOW:4:25 \ 
+    MINLEN:50 
+```
+
+
+```
+fastp -q -l --in1 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz --in2 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+  --out1 results/trimmomatic/R1.qc.fq.gz --out2 results/trimmomatic/R2.qc.fq.gz \
+  --adapter_sequence adapters.fa \
+  --trim_poly_g
 ```
 ## Выравнивание
 Я хочу выравнить мои файлы с парными ридами на геном человека с помощью STAR, можешь написать команду?
