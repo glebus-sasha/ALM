@@ -28,23 +28,29 @@ trimmomatic PE -threads 4 raw/202309251627_220601009_2P230329071US2S2721BX_B_nef
 
 
 ```
-fastp -q -l --in1 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz --in2 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
-  --out1 results/trimmomatic/R1.qc.fq.gz --out2 results/trimmomatic/R2.qc.fq.gz \
-  --adapter_sequence adapters.fa \
-  --trim_poly_g
+fastp -q 20 -l 50  --trim_poly_g --in1 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz --in2 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+  --out1 results/fastp/R1.qc.fq.gz --out2 results/trimmomatic/R2.qc.fq.gz \
+#  --adapter_sequence adapters.fa \
+
 ```
 ## Выравнивание
 Я хочу выравнить мои файлы с парными ридами на геном человека с помощью STAR, можешь написать команду?
+
 Путь до референса fna:
 /home/oxkolpakova/data/references/human.fna
+
 Путь до файла разметки gtf:
 /home/oxkolpakova/data/references/genomic.gtf
+
 Путь до первого рида R1:
 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz
+
 Путь до второго рида R2:
 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz
+
 Путь до выходных файлов:
 /home/oxkolpakova/data/result/human
+
 Путь до невыравненных ридов:
 /home/oxkolpakova/data/result/unmapped
 ```
@@ -53,7 +59,6 @@ bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data
 # Сохраняем невыравненные
 ```
 samtools view -Sb alignment.sam | samtools sort -o alignment.sorted.bam
-
 samtools view -b -o /home/oxkolpakova/data/result/unmapped/unmapped.bam -f 4 /home/oxkolpakova/data/result/human/alignment.sam
 samtools index samtools index alignment.sorted.bam 
 samtools idxstats alignment.sorted.bam 
