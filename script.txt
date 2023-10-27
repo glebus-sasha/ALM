@@ -7,30 +7,7 @@ scp -r /home/alexandr/Downloads/ALM/GCF_000001405.40_GRCh38.p14_genomic.fna oxko
 
 datasets-cli download genome accession GCF_000001405.40 --include gff3,genome --filename GCF_000001405.40.zip
 
-
-# star_index.sh
-#!/bin/bash
-STAR --runThreadN 12 \
-	--runMode genomeGenerate \
-	--genomeDir  /home/oxkolpakova/data/references/STAR_indes_human/ \
-	--sjdbGTFfile /home/oxkolpakova/data/references/phytophthora.gff \
-	--genomeFastaFiles /home/oxkolpakova/data/references/phytophthora.fna
-
-# aline_star.sh
-#!/bin/bash
-/home/doka-test/data/STAR/source/STAR \
-	--genomeDir  /home/oxkolpakova/data/references/
-	--readFilesIn /home/doka-test/data/RNA_S5129Nr33.1.fastq.gz /home/doka-test/data/RNA_S5129Nr33.2.fastq.gz \
-	--readFilesCommand zcat \
-	--outSAMtype BAM SortedByCoordinate \
-	--genomeSAindexNbases 12 \
-	--quantMode GeneCounts \
-	--outFileNamePrefix /home/oxkolpakova/data/result/human/ \
-	--runThreadN 20 \
-	--outReadsUnmapped Fastx
-
-conda install -c bioconda bwa-mem2
-bwa-mem2 index human.fna
+bwa mem index human.fna
 
 Я хочу выравнить мои файлы с парными ридами на геном человека с помощью STAR, можешь написать команду?
 Путь до референса fna:
@@ -47,30 +24,19 @@ bwa-mem2 index human.fna
 /home/oxkolpakova/data/result/unmapped
 
 bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz > /home/oxkolpakova/data/result/human/alignment.sam
+  
+  
+  trimmomatic PE -threads 4 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+    R1.qc.fq.gz s1_se \
+    R2.qc.fq.gz s2_se \
+    ILLUMINACLIP:adapters.fa:2:40:15 \ # Путь к файлу с адаптерами
+    LEADING:2 TRAILING:2 \
+    SLIDINGWINDOW:4:25 \ # Опция для обрезки качества
+    MINLEN:50 # Минимальная длина рида после обработки
+    
+    
+samtools view -Sb alignment.sam | samtools sort -o alignment.sorted.bam
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+samtools view -b -o /home/oxkolpakova/data/result/unmapped/unmapped.bam -f 4 /home/oxkolpakova/data/result/human/alignment.sam
+samtools index samtools index alignment.sorted.bam 
+samtools idxstats alignment.sorted.bam 
