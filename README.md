@@ -1,13 +1,14 @@
 # ALMetevsk
 
 ## Подключение
+```{}
 cd /home/alexandr/Downloads/063_annotator1
 sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
 source activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
 scp -r /home/alexandr/Documents/ALM/data/raw/* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
-
+```
 ## Загрузка референса и создание индекса
 datasets-cli download genome accession GCF_000001405.40 --include gff3,genome --filename GCF_000001405.40.zip
 
