@@ -26,11 +26,12 @@ trimmomatic PE -threads 4 raw/202309251627_220601009_2P230329071US2S2721BX_B_nef
     MINLEN:50 
 ```
 
-
 ```
-fastp -q 20 -l 50  --trim_poly_g --in1 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz --in2 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
-  --out1 results/fastp/R1.qc.fq.gz --out2 results/trimmomatic/R2.qc.fq.gz \
-#  --adapter_sequence adapters.fa \
+fastp -q 20 -l 50  --trim_poly_g --thread 12 -h home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.htpl \
+    --in1 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
+    --in2 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+    --out1 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
+    --out2 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz
 
 ```
 ## Выравнивание
@@ -56,10 +57,23 @@ fastp -q 20 -l 50  --trim_poly_g --in1 raw/202309251627_220601009_2P230329071US2
 ```
 bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz > /home/oxkolpakova/data/result/human/alignment.sam
 ```
-# Сохраняем невыравненные
+## Сохраняем невыравненные
 ```
 samtools view -Sb alignment.sam | samtools sort -o alignment.sorted.bam
 samtools view -b -o /home/oxkolpakova/data/result/unmapped/unmapped.bam -f 4 /home/oxkolpakova/data/result/human/alignment.sam
 samtools index samtools index alignment.sorted.bam 
 samtools idxstats alignment.sorted.bam 
 ```
+
+## umgap
+```
+umgap-analyse.sh -1 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
+-2 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz -o home/oxkolpakova/data/result/umgap/output.fa
+
+```
+
+
+./FragGeneScanRs 
+/home/oxkolpakova/.cargo/bin
+/home/oxkolpakova/programs/FragGeneScanPlus
+FGSpp
