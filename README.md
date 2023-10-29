@@ -1,5 +1,5 @@
 # ALMetevsk
-
+Анализ метагенома в нефти. Есть подозрение, что данные загрязнены человеком.
 ## Подключение
 ```
 cd /home/alexandr/Downloads/063_annotator1
@@ -9,6 +9,7 @@ source activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
 scp -r /home/alexandr/Documents/ALM/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_[5-6]_* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
 scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/result/fastqc/*.html /home/alexandr/Documents/ALM/data/results/fastqc_after
+screen -XS <session-id> quit
 ```
 ## Загрузка референса и создание индекса
 
@@ -19,7 +20,7 @@ datasets-cli download genome accession GCF_000001405.40 --include gff3,genome --
 bwa mem index human.fna
 ```
 ## Качество
-
+Предарительные анализ показал большое количество polyG по всех образцах, а так же адаптеры в некоторых образцах. 
 Это пример команда для очистки и создания отчета fastp.
 ```
 fastp -q 20 -l 50  --trim_poly_g --thread 12 -h /home/oxkolpakova/data/result/fastp/report_html/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00.html \
@@ -31,8 +32,10 @@ fastp -q 20 -l 50  --trim_poly_g --thread 12 -h /home/oxkolpakova/data/result/fa
 ```
 
 Для выполнения был написан скрипт fastp_do.sh с помощью GPT.
+После тримминга результат значительно улучшился.
 
 ## Выравнивание
+Разведочный анализ показал загрязнение человеком. Поэтому выполним выравнивание на геном человека и отфильтруем невыравненные с помощью bwa mem и samtools.
 
 Принт для GPT:
 Я хочу выравнить мои файлы с парными ридами на геном человека с помощью bwa, можешь написать команду?
@@ -56,18 +59,7 @@ fastp -q 20 -l 50  --trim_poly_g --thread 12 -h /home/oxkolpakova/data/result/fa
 /home/oxkolpakova/data/result/unmapped
 
 ## bwa mem
-```
-bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz > /home/oxkolpakova/data/result/human/alignment.sam
-```
 
-```
-samtools view -Sb alignment.sam | samtools sort -o alignment.sorted.bam
-samtools view -b -o /home/oxkolpakova/data/result/unmapped/unmapped.bam -f 4 /home/oxkolpakova/data/result/human/alignment.sam
-samtools index samtools index alignment.sorted.bam 
-samtools idxstats alignment.sorted.bam 
-```
-
-Улучшенная версия кода для bwa mem
 ```
 bwa mem -t 12 /home/oxkolpakova/data/references/human.fna \
   /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
@@ -78,20 +70,12 @@ bwa mem -t 12 /home/oxkolpakova/data/references/human.fna \
 samtools view -b -o /home/oxkolpakova/data/result/bwa/unmapped/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00.bam -f 4 \
   /home/oxkolpakova/data/result/bwa/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00.sam
 ```
+
 Для запуска используем скрипт do_bwa.sh
-Можно ли упростить этот код?
 
 
-## umgap
-```
-umgap-analyse.sh -1 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
--2 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz -o home/oxkolpakova/data/result/umgap/output.fa
+## Статистика после bwa mem
 
-```
-
-
-
-
-
-
-
+Считаем количество ридов, которые не были выравнены на геном человека с помощью скрипта
+read_count_after_bwa.sh
+Результат в файле num_of_reads_after_bwa.txt говорит о том, что все образцы загрязнены человеком: уровень чистоты в диапазоне от 0,42% до 27,96%
