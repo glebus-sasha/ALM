@@ -7,35 +7,35 @@ sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
 source activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
-scp -r /home/alexandr/Documents/ALM/data/raw/* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
+scp -r /home/alexandr/Documents/ALM/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_[5-6]_* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
+scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/result/fastqc*.html /home/alexandr/Documents/ALM/data/results/fastqc_after
 ```
 ## Загрузка референса и создание индекса
+
+Загрузить не получилось( Пришлось скачать вручную.
 ```
 datasets-cli download genome accession GCF_000001405.40 --include gff3,genome --filename GCF_000001405.40.zip
 
 bwa mem index human.fna
 ```
 ## Качество
+
+Это пример команда для очистки и создания отчета fastp.
 ```
-trimmomatic PE -threads 4 raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
-    results/trimmomatic/R1.qc.fq.gz results/trimmomatic/s1_se \
-    results/trimmomatic/R2.qc.fq.gz results/trimmomatic/s2_se \
-    ILLUMINACLIP:adapters.fa:2:40:15 \ 
-    LEADING:2 TRAILING:2 \
-    SLIDINGWINDOW:4:25 \ 
-    MINLEN:50 
-```
+fastp -q 20 -l 50  --trim_poly_g --thread 12 -h /home/oxkolpakova/data/result/fastp/report_html/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00.html \
+    --in1 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00_R1.fq.gz \
+    --in2 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00_R2.fq.gz \
+    --out1 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00_R1.fq.gz \
+    --out2 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_6_L00_R2.fq.gz
 
 ```
-fastp -q 20 -l 50  --trim_poly_g --thread 12 -h home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.htpl \
-    --in1 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
-    --in2 /home/oxkolpakova/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
-    --out1 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
-    --out2 /home/oxkolpakova/data/result/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz
 
-```
+Для выполнения был написан скрипт fastp_do.sh с помощью GPT.
+
 ## Выравнивание
-Я хочу выравнить мои файлы с парными ридами на геном человека с помощью STAR, можешь написать команду?
+
+Принт для GPT:
+Я хочу выравнить мои файлы с парными ридами на геном человека с помощью bwa, можешь написать команду?
 
 Путь до референса fna:
 /home/oxkolpakova/data/references/human.fna
@@ -72,8 +72,22 @@ umgap-analyse.sh -1 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_
 
 ```
 
+## bwa mem
 
-./FragGeneScanRs 
-/home/oxkolpakova/.cargo/bin
-/home/oxkolpakova/programs/FragGeneScanPlus
-FGSpp
+Привет кода для bwa mem
+```
+bwa mem -t 12 /home/oxkolpakova/data/references/human.fna \
+  /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
+  /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz \
+  | samtools view -Sb - \
+  | samtools sort -o /home/oxkolpakova/data/result/bwa/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00.sorted.bam
+
+samtools view -b -o /home/oxkolpakova/data/result/bwa/unmapped/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00.bam -f 4 \
+  /home/oxkolpakova/data/result/bwa/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00.sam
+```
+Для запуска используем скрипт do_bwa.sh
+Можно ли упростить этот код?
+
+
+
+
