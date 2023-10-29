@@ -1,7 +1,7 @@
 # ALMetevsk
 
 ## Подключение
-```{}
+```
 cd /home/alexandr/Downloads/063_annotator1
 sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
@@ -54,10 +54,12 @@ fastp -q 20 -l 50  --trim_poly_g --thread 12 -h /home/oxkolpakova/data/result/fa
 
 Путь до невыравненных ридов:
 /home/oxkolpakova/data/result/unmapped
+
+## bwa mem
 ```
 bwa mem -t 12 /home/oxkolpakova/data/references/human.fna /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz > /home/oxkolpakova/data/result/human/alignment.sam
 ```
-## Сохраняем невыравненные
+
 ```
 samtools view -Sb alignment.sam | samtools sort -o alignment.sorted.bam
 samtools view -b -o /home/oxkolpakova/data/result/unmapped/unmapped.bam -f 4 /home/oxkolpakova/data/result/human/alignment.sam
@@ -65,16 +67,7 @@ samtools index samtools index alignment.sorted.bam
 samtools idxstats alignment.sorted.bam 
 ```
 
-## umgap
-```
-umgap-analyse.sh -1 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
--2 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz -o home/oxkolpakova/data/result/umgap/output.fa
-
-```
-
-## bwa mem
-
-Привет кода для bwa mem
+Улучшенная версия кода для bwa mem
 ```
 bwa mem -t 12 /home/oxkolpakova/data/references/human.fna \
   /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
@@ -87,6 +80,17 @@ samtools view -b -o /home/oxkolpakova/data/result/bwa/unmapped/202309251627_2206
 ```
 Для запуска используем скрипт do_bwa.sh
 Можно ли упростить этот код?
+
+
+## umgap
+```
+umgap-analyse.sh -1 202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R1.fq.gz \
+-2 /home/oxkolpakova/data/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_1_L00_R2.fq.gz -o home/oxkolpakova/data/result/umgap/output.fa
+
+```
+
+
+
 
 
 
