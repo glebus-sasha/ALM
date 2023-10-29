@@ -8,7 +8,7 @@ ssh oxkolpakova@pbx3
 source activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
 scp -r /home/alexandr/Documents/ALM/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_[5-6]_* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
-scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/result/fastqc*.html /home/alexandr/Documents/ALM/data/results/fastqc_after
+scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/result/fastqc/*.html /home/alexandr/Documents/ALM/data/results/fastqc_after
 ```
 ## Загрузка референса и создание индекса
 
