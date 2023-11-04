@@ -6,9 +6,8 @@ cd /home/alexandr/Downloads/063_annotator1
 sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
 source activate alm
-export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bin
-scp -r /home/alexandr/Documents/ALM/data/raw/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_[5-6]_* oxkolpakova@pbx3:/home/oxkolpakova/data/raw
-scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/result/fastqc/*.html /home/alexandr/Documents/ALM/data/results/fastqc_after
+export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bi
+scp -r oxkolpakova@pbx3:/home/oxkolpakova/scripts/BWAINDEX_FASTP_BWAMEM.nf /home/alexandr/Documents/ALM/scripts
 screen -XS <session-id> quit
 ```
 ## Загрузка референса и создание индекса
@@ -79,3 +78,47 @@ samtools view -b -o /home/oxkolpakova/data/result/bwa/unmapped/202309251627_2206
 Считаем количество ридов, которые не были выравнены на геном человека с помощью скрипта
 read_count_after_bwa.sh
 Результат в файле num_of_reads_after_bwa.txt говорит о том, что все образцы загрязнены человеком: уровень чистоты в диапазоне от 0,42% до 27,96%
+
+## bam2fasta для очищенных от человека
+
+```
+for file in ./*.bam; do
+    output=$(basename "$file" .bam).fasta
+    samtools fasta "$file" > "$output"
+done
+```
+
+## Анализ с помощью kraken2
+Загружаем датабазы с помощью скрипта
+databases.sh
+
+```
+./kraken2-build --build --threads n --db kraken2_db
+```
+_Дальше мы делаем твист_
+_И переходим ко второй попытке_
+_Делаем всё заново_
+
+## nextflow
+
+Для этого написан скрипт nextflow так же его можно опционально докеризировать.
+Доступны 3 инструмента
+BWAINDEX
+FASTP
+BWAMEM
+
+```
+./BWAINDEX_FASTP_BWAMEM.nf with-report report.html -with-dag -resume
+```
+В этот раз используем только fastp с параметрами -q 20 -l 140 --trim_poly_g для очистки качества 20 и длинне ридов 140, так же обрежим поли G.
+
+## kraken2
+Для метагеномного анализа используем kraken2
+базу данных скачаем в 
+/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
+с помощью скрипта kraken2-build
+
+```
+/home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
+```
+
