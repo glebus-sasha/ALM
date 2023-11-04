@@ -2,8 +2,7 @@
 Анализ метагенома в нефти. Есть подозрение, что данные загрязнены человеком.
 ## Подключение
 ```
-cd /home/alexandr/Downloads/063_annotator1
-sudo openvpn externalwork3-client.conf
+cd /home/alexandr/Downloads/063_annotator1 && sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
 source activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bi
@@ -120,5 +119,16 @@ BWAMEM
 
 ```
 /home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
+```
+
+Проанализируем с помощью стандартной базы kraken2
+
+```
+dir_in = '/home/oxkolpakova/data/results/fastp'
+dir_out = '/home/oxkolpakova/data/results/kraken2'
+mkdir -d $dir_out
+kraken2 --db /путь_к_базе_данных --threads 20 --paired \
+    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \
+    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz > kraken2_result.txt
 ```
 
