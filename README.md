@@ -126,22 +126,15 @@ BWAMEM
 
 Проанализируем с помощью стандартной базы kraken2
 
+Не получилось загрузить базы стандартно из за ограничений по RAM, скачиваем прекомпиленные
 ```
-dir_in='/home/oxkolpakova/data/results/fastp'
-out='/home/oxkolpakova/data/results/kraken2'
-database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
-NCPUS = 20
-mkdir -p "$dir_out"
-
 wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20231009.tar.gz
-
-kraken2 --db "$DB_dir" --threads 20 --paired \
-    "$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz" \
-    "$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz" > "$dir_out/kraken2_result.txt"
-
+tar -xzf k2_standard_20231009.tar.gz
+```
+kraken2 запуск
 ```
 dir_in='/home/oxkolpakova/data/results/fastp'
-out='/home/oxkolpakova/data/results/kraken2'
+out='/home/oxkolpakova/data/results/kraken2/kraken2_result.txt'
 database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
 NCPUS = 20
 mkdir -p "$out"
@@ -157,5 +150,5 @@ kraken2 \
 --minimum-base-quality 20 \
 --gzip-compressed \
 $dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \ $dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz
-
+```
 
