@@ -112,7 +112,7 @@ BWAMEM
 ```
 ./BWAINDEX_FASTP_BWAMEM.nf with-report report.html -with-dag -resume
 ```
-В этот раз используем только fastp с параметрами -q 20 -l 140 --trim_poly_g для очистки качества 20 и длинне ридов 140, так же обрежим поли G.
+В этот раз используем только fastp с параметрами -q 20 -l 140 --trim_poly_g для очистки качества 20 и длинне ридов 140, так же обрежем поли G.
 
 ## kraken2
 Для метагеномного анализа используем kraken2
@@ -131,24 +131,29 @@ BWAMEM
 wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20231009.tar.gz
 tar -xzf k2_standard_20231009.tar.gz
 ```
-kraken2 запуск
+kraken2 пробный запуск
 ```
-dir_in='/home/oxkolpakova/data/results/fastp'
+read1='/home/oxkolpakova/data/results/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz'
+read2='/home/oxkolpakova/data/results/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz'
 out='/home/oxkolpakova/data/results/kraken2/kraken2_result.txt'
+report='/home/oxkolpakova/data/results/kraken2/kraken2_report.txt'
 database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
-NCPUS = 20
+NCPUS=20
 mkdir -p "$out"
 
 kraken2 \
 --db $database \
 --threads $NCPUS \
---output $out \
 --report $report \
 --report-zero-counts \
 --use-names \
---paired \
+--memory-mapping \
 --minimum-base-quality 20 \
 --gzip-compressed \
-$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \ $dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz
+--paired \
+$read1 $read2 
 ```
 
+Запускаем kraken2 с помощью nextflow
+```
+./BWAINDEX_FASTP_BWAMEM_KRAKEN2.nf with-report report.html -with-dag -resume
