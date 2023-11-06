@@ -121,17 +121,41 @@ BWAMEM
 с помощью скрипта kraken2-build
 
 ```
-/home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
+/home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --max-db-size 68719476736 --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
 ```
 
 Проанализируем с помощью стандартной базы kraken2
 
 ```
-dir_in = '/home/oxkolpakova/data/results/fastp'
-dir_out = '/home/oxkolpakova/data/results/kraken2'
-mkdir -d $dir_out
-kraken2 --db /путь_к_базе_данных --threads 20 --paired \
-    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \
-    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz > kraken2_result.txt
+dir_in='/home/oxkolpakova/data/results/fastp'
+out='/home/oxkolpakova/data/results/kraken2'
+database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
+NCPUS = 20
+mkdir -p "$dir_out"
+
+wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20231009.tar.gz
+
+kraken2 --db "$DB_dir" --threads 20 --paired \
+    "$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz" \
+    "$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz" > "$dir_out/kraken2_result.txt"
+
 ```
+dir_in='/home/oxkolpakova/data/results/fastp'
+out='/home/oxkolpakova/data/results/kraken2'
+database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
+NCPUS = 20
+mkdir -p "$out"
+
+kraken2 \
+--db $database \
+--threads $NCPUS \
+--output $out \
+--report $report \
+--report-zero-counts \
+--use-names \
+--paired \
+--minimum-base-quality 20 \
+--gzip-compressed \
+$dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \ $dir_in/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz
+
 
