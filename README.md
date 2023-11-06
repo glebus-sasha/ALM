@@ -9,7 +9,7 @@ export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bi
 
 scp -r oxkolpakova@pbx3:/home/oxkolpakova/scripts/BWAINDEX_FASTP_BWAMEM.nf \
 /home/alexandr/Documents/ALM/scripts
-
+ 
 screen -XS <session-id> quit
 ```
 ## Загрузка референса и создание индекса
