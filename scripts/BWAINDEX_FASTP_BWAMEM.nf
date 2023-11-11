@@ -82,16 +82,16 @@ process KRAKEN2 {
     path database
     
     output:
-    path "${sid}kraken2_result.txt"
-    path "${sid}kraken2_report.txt"
+    path "${sid}_kraken2_result.txt"
+    path "${sid}_kraken2_report.txt"
     
     script:
     """
     kraken2 \
     --db $database \
     --threads ${task.cpus} \
-    --output ./${sid}kraken2_result.txt \
-    --report ./${sid}kraken2_report.txt \
+    --output ${sid}_kraken2_result.txt \
+    --report ${sid}_kraken2_report.txt \
     --report-zero-counts \
     --use-names \
     --memory-mapping \
@@ -102,16 +102,40 @@ process KRAKEN2 {
     """
 }
 
+process BRACKEN {
+    debug true
+    cpus params.cpus
+    publishDir "${params.output}/bracken"
+    
+    input:
+    path kraken_report
+    path database
+
+    
+    output:
+    path "{sid}_bracken_result.txt"
+    
+    script:
+    """
+    bracken -d $database -i $kraken_report -o {sid}_bracken_result.txt -r 100 -l S
+    """
+}
+
+
 
 if (params.input != false) {
             Channel.fromFilePairs(params.input, checkIfExists: true )
                 .set { input_fastqs }
         }
         
+        
+        
+
 workflow{
 //    BWAINDEX(params.ref)
     FASTP(input_fastqs)
 //    BWAMEM(FASTP.out[0], params.ref, BWAINDEX.out)
     KRAKEN2(FASTP.out[0], params.database)
+    BRACKEN(KRAKEN2.out[1], params.database)
 }
 
