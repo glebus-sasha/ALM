@@ -1,0 +1,218 @@
+---
+title: "statistics"
+author: "Oxana Kolpakova"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r}
+data <- read.csv2('C:/ALM/summary/kraken_resume.csv')
+data %>% glimpse()
+data %>% summary()
+```
+
+У нас 20 образцов и 2 контроля.
+Сразу видно контаминацию человеком во всех образцах, включая контроль.
+
+Переименуем столбец и сделаем более читаемым названия видов.
+
+```{r}
+# Функция для извлечения видов из X.ID
+get_species <- function(x) {
+  str_split(x, "\\|") %>% 
+    unlist() %>% 
+    grep("^s__", ., value = TRUE) %>% 
+    str_replace("^s__", "")
+}
+
+# Применяем функцию к столбцу X.ID и создаем новый столбец species
+data_1 <- data %>% 
+  mutate(DescriptiveSpecies  = map_chr(X.ID, get_species)) %>% 
+  select(-X.ID)
+data_1 %>% glimpse()
+```
+Посчитаем содержания человека в образцах.
+```{r}
+sum_by_sample <- data_1 %>%
+  select(starts_with("S")) %>%
+  summarise_all(sum)
+
+# Шаг 2: Выбрать только строки, где DescriptiveSpecies равен "Homo_sapiens"
+homo_sapiens_data <- data_1 %>%
+  filter(DescriptiveSpecies == "Homo_sapiens")
+
+# Шаг 3: Просуммировать значения для каждого образца (S1 - S22)
+sum_homo_sapiens <- homo_sapiens_data %>%
+  select(starts_with("S")) %>%
+  summarise_all(sum)
+
+# Шаг 4: Поделить значения из шага 3 на значения из шага 1
+result <- sum_homo_sapiens / sum_by_sample 
+human_ratio <- t(data.frame(result)) %>% 
+  data.frame() %>% 
+  mutate(Sample = names(result),
+         human_ratio = result) %>% 
+  select('.', Sample) %>% 
+  tibble() %>% 
+  rename('Human_ratio' = '.') %>% 
+  select(Sample, Human_ratio)
+
+human_ratio
+```
+```{r}
+human_ratio %>% 
+  ggplot() + 
+  aes(Sample, Human_ratio) + 
+  scale_fill_brewer(palette = "Set1") +
+  geom_bar(stat = "identity") + 
+  theme_minimal()
+```
+
+
+Создадим таблицы из 10 самых представленных видов
+```{r}
+# Создание списка таблиц
+tables_list <- lapply(names(data_1)[1:22], function(sample) {
+  df_sample <- data_1 %>%
+    select(DescriptiveSpecies , !!sym(sample)) %>%
+    arrange(desc(!!sym(sample))) %>%
+    slice_head(n = 10)
+  return(df_sample)
+})
+
+names(tables_list) <- names(df)[1:22]
+# Вывод таблиц
+for (i in seq_along(tables_list)) {
+  cat("Table for Sample", names(tables_list)[i], ":\n")
+  print(tables_list[[i]])
+  cat("\n")
+}
+```
+Создадим список уникальных видов из предыдущих таблиц. Сортировка по алфавиту.
+```{r}
+# Объединение всех таблиц в один датафрейм
+bind_rows(tables_list, .id = "Sample") %>% 
+  select(DescriptiveSpecies ) %>% 
+  unique() %>% 
+  arrange(DescriptiveSpecies )
+ 
+```
+
+Всего получилось 38 уникальных видов.
+
+Считаем relative abundancy, учитывая контроли (S21, S22). Для этого посчитаем среднее арифметическое и вычтем из каждой колонки.
+
+```{r}
+relative_abundancy <- data_1 %>%
+  mutate_at(vars(starts_with("S")), function(x) x - (.[["S21"]] + .[["S22"]]) / 2) %>%
+  select(-S21, -S22)
+relative_abundancy %>% glimpse()
+```
+
+Считаем abundancy ratio
+
+```{r}
+abundancy_ratio <- data_1 %>%
+  mutate_at(vars(starts_with("S")), function(x) x / (.[["S21"]] + .[["S22"]]) / 2) %>% 
+  select(-S21, -S22)
+abundancy_ratio %>% glimpse()
+```
+
+Построим гистограммы.
+```{r}
+relative_abundancy %>%
+  mutate(across(where(is.numeric), scale)) %>% 
+  arrange(-S12) %>% 
+  head() %>% 
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
+  ggplot() +
+  aes(x = Value) + 
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  facet_wrap(~ Column, scales = "free_x", ncol = 4) +
+  labs(title = "Гистограммы S1 - S20", x = "Значение", y = "Частота")
+```
+
+Построим тепловую карту relative_abundancy,  используя кластеризацию ward.D2
+Для этого нормализуем данные и построим матрицу дистанций. исключим самые представленные Homo_sapiens и Propionibacterium_acnes.
+
+```{r}
+relative_abundancy_scaled <- relative_abundancy %>%
+  mutate(across(where(is.numeric), scale)) %>%
+  filter(DescriptiveSpecies != 'Homo_sapiens' & DescriptiveSpecies !=  'Propionibacterium_acnes') %>% 
+  select(-DescriptiveSpecies)
+relative_abundancy_dist <- relative_abundancy_scaled %>%
+  dist(method = "euclidean")
+```
+Кластеризуем методом ward.D2
+```{r}
+relative_abundancy_hc <- hclust(d = relative_abundancy_dist, 
+                        method = "ward.D2")
+```
+Построим дендрограмму
+```{r}
+library(factoextra)
+fviz_dend(relative_abundancy_hc, 
+          cex = 0.1)
+```
+
+Доработать, поменять масштаб.
+
+Попробуем построить Heat map + Tree map
+
+```{r}
+library(pheatmap)
+pheatmap(relative_abundancy_scaled, 
+         show_rownames = FALSE, 
+         clustering_distance_rows = relative_abundancy_dist,
+         clustering_method = "ward.D2", 
+         cutree_rows = 5,
+         cutree_cols = length(colnames(relative_abundancy_scaled)),
+         angle_col = 45, 
+         main = "Dendrograms for clustering rows and columns with heatmap")
+```
+
+Доработать. Попробуем еще раз построить столбчатую диаграмму, взяв 15 самых представленных видов в S12, построим диаграмму для всех образцов. Исключены самые представленные Homo_sapiens и  Propionibacterium_acnes.
+
+```{r fig.width=10}
+library(RColorBrewer)
+my_palette <- colorRampPalette(brewer.pal(20, "Set1"))
+relative_abundancy %>%
+  arrange(-S12) %>% 
+  head(15) %>% 
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
+  group_by(DescriptiveSpecies) %>% 
+  ggplot(aes(x = DescriptiveSpecies, y = Value, fill = Column)) +
+  geom_col(position = "dodge") +
+  labs(title = "Диаграммы-violin S1 - S20", x = "Колонка", y = "Значение") +
+  scale_fill_manual(values = my_palette(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Дальше попытки построить тепловые карты без кластеризации. По прежнему без Homo_sapiens и Propionibacterium_acnes.
+```{r fig.width=10, fig.height=10}
+my_tibble <- relative_abundancy %>%
+  mutate(across(where(is.numeric), scale)) %>% 
+  arrange(-S12) %>% 
+  head(30) %>% 
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value")
+
+ggplot(my_tibble, aes(x = DescriptiveSpecies, y = Column, fill = Value)) +
+  geom_tile() +
+  labs(title = "Тепловая карта S1 - S20", x = "DescriptiveSpecies", y = "Column", fill = "Значение") +
+  scale_fill_viridis_c() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+
+
+
