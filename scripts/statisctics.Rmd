@@ -1,19 +1,35 @@
 ---
-title: "statistics"
+title: "Almetyevsk metagenome statistics"
 author: "Oxana Kolpakova"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	results = FALSE
+)
 ```
+## 1. Обработка данных fastq
+
+- fastp -q 20 -l 50  --trim_poly_g
+
+- kraken2 Confidence 0.1, Minimum Base Quality 20, Standart DB (Galaxy) 
+
+- Kraken taxonomic report (Galaxy)
+
+
+## 2. Фильтрация
+
+Предварительная фильтрация против фрагментов генома человека не проводилась, согласно https://www.nature.com/articles/s41598-022-12037-3#Sec2
 
 ```{r}
 library(tidyverse)
 library(ggplot2)
 ```
-
 
 ```{r}
 data <- read.csv2('C:/ALM/summary/kraken_resume.csv')
@@ -21,12 +37,12 @@ data %>% glimpse()
 data %>% summary()
 ```
 
-У нас 20 образцов и 2 контроля.
-Сразу видно контаминацию человеком во всех образцах, включая контроль.
-
-Переименуем столбец и сделаем более читаемым названия видов.
+У нас 22 образца (21 и 22 - контроли).
+Можно отметить контаминацию фрагментами генома человека во всех образцах, включая контроль.
 
 ```{r}
+# Переименуем столбец и сделаем более читаемым названия видов.
+
 # Функция для извлечения видов из X.ID
 get_species <- function(x) {
   str_split(x, "\\|") %>% 
@@ -41,8 +57,9 @@ data_1 <- data %>%
   select(-X.ID)
 data_1 %>% glimpse()
 ```
-Посчитаем содержания человека в образцах.
-```{r}
+Определим процентное содержания фрагментов генома человека в образцах.
+```{r results = TRUE}
+
 sum_by_sample <- data_1 %>%
   select(starts_with("S")) %>%
   summarise_all(sum)
@@ -67,50 +84,26 @@ human_ratio <- t(data.frame(result)) %>%
   rename('Human_ratio' = '.') %>% 
   select(Sample, Human_ratio)
 
-human_ratio
+print.data.frame(human_ratio)
 ```
-```{r}
+```{r results = TRUE}
 human_ratio %>% 
   ggplot() + 
-  aes(Sample, Human_ratio) + 
+  aes(factor(Sample, levels = c('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9',
+             'S10', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19',
+             'S20', 'S21', 'S22')), Human_ratio) + 
   scale_fill_brewer(palette = "Set1") +
   geom_bar(stat = "identity") + 
+  ggtitle('Содержание фрагментов генома человека') +
+  labs(y = '', x = 'Sample') +
   theme_minimal()
 ```
 
 
-Создадим таблицы из 10 самых представленных видов
-```{r}
-# Создание списка таблиц
-tables_list <- lapply(names(data_1)[1:22], function(sample) {
-  df_sample <- data_1 %>%
-    select(DescriptiveSpecies , !!sym(sample)) %>%
-    arrange(desc(!!sym(sample))) %>%
-    slice_head(n = 10)
-  return(df_sample)
-})
 
-names(tables_list) <- names(df)[1:22]
-# Вывод таблиц
-for (i in seq_along(tables_list)) {
-  cat("Table for Sample", names(tables_list)[i], ":\n")
-  print(tables_list[[i]])
-  cat("\n")
-}
-```
-Создадим список уникальных видов из предыдущих таблиц. Сортировка по алфавиту.
-```{r}
-# Объединение всех таблиц в один датафрейм
-bind_rows(tables_list, .id = "Sample") %>% 
-  select(DescriptiveSpecies ) %>% 
-  unique() %>% 
-  arrange(DescriptiveSpecies )
- 
-```
+## 3. Вычисление relative abundancy
 
-Всего получилось 38 уникальных видов.
-
-Считаем relative abundancy, учитывая контроли (S21, S22). Для этого посчитаем среднее арифметическое и вычтем из каждой колонки.
+Посчитаем relative abundancy видов, (S21, S22 - контроли). Для этого посчитаем среднее арифметическое и вычтем его из каждой колонки.
 
 ```{r}
 relative_abundancy <- data_1 %>%
@@ -119,17 +112,17 @@ relative_abundancy <- data_1 %>%
 relative_abundancy %>% glimpse()
 ```
 
-Считаем abundancy ratio
-
 ```{r}
+# Считаем abundancy ratio
 abundancy_ratio <- data_1 %>%
   mutate_at(vars(starts_with("S")), function(x) x / (.[["S21"]] + .[["S22"]]) / 2) %>% 
   select(-S21, -S22)
 abundancy_ratio %>% glimpse()
 ```
 
-Построим гистограммы.
-```{r}
+
+```{r eval=FALSE}
+# Построим гистограммы.
 relative_abundancy %>%
   mutate(across(where(is.numeric), scale)) %>% 
   arrange(-S12) %>% 
@@ -142,10 +135,13 @@ relative_abundancy %>%
   labs(title = "Гистограммы S1 - S20", x = "Значение", y = "Частота")
 ```
 
-Построим тепловую карту relative_abundancy,  используя кластеризацию ward.D2
-Для этого нормализуем данные и построим матрицу дистанций. исключим самые представленные Homo_sapiens и Propionibacterium_acnes.
+
 
 ```{r}
+# Построим тепловую карту relative_abundancy,  используя кластеризацию ward.D2
+# Для этого нормализуем данные и построим матрицу дистанций. исключим самые представленные 
+# Homo_sapiens и Propionibacterium_acnes.
+
 relative_abundancy_scaled <- relative_abundancy %>%
   mutate(across(where(is.numeric), scale)) %>%
   filter(DescriptiveSpecies != 'Homo_sapiens' & DescriptiveSpecies !=  'Propionibacterium_acnes') %>% 
@@ -153,23 +149,25 @@ relative_abundancy_scaled <- relative_abundancy %>%
 relative_abundancy_dist <- relative_abundancy_scaled %>%
   dist(method = "euclidean")
 ```
-Кластеризуем методом ward.D2
+
 ```{r}
+# Кластеризуем методом ward.D2
 relative_abundancy_hc <- hclust(d = relative_abundancy_dist, 
                         method = "ward.D2")
 ```
-Построим дендрограмму
-```{r}
+
+```{r eval=FALSE}
+# Построим дендрограмму
 library(factoextra)
 fviz_dend(relative_abundancy_hc, 
           cex = 0.1)
 ```
 
-Доработать, поменять масштаб.
 
-Попробуем построить Heat map + Tree map
 
-```{r}
+```{r eval = FALSE}
+# Доработать, поменять масштаб.
+# Попробуем построить Heat map + Tree map
 library(pheatmap)
 pheatmap(relative_abundancy_scaled, 
          show_rownames = FALSE, 
@@ -181,24 +179,8 @@ pheatmap(relative_abundancy_scaled,
          main = "Dendrograms for clustering rows and columns with heatmap")
 ```
 
-Доработать. Попробуем еще раз построить столбчатую диаграмму, взяв 15 самых представленных видов в S12, построим диаграмму для всех образцов. Исключены самые представленные Homo_sapiens и  Propionibacterium_acnes.
-
-```{r fig.width=10}
-library(RColorBrewer)
-my_palette <- colorRampPalette(brewer.pal(20, "Set1"))
-relative_abundancy %>%
-  arrange(-S12) %>% 
-  head(15) %>% 
-  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
-  group_by(DescriptiveSpecies) %>% 
-  ggplot(aes(x = DescriptiveSpecies, y = Value, fill = Column)) +
-  geom_col(position = "dodge") +
-  labs(title = "Диаграммы-violin S1 - S20", x = "Колонка", y = "Значение") +
-  scale_fill_manual(values = my_palette(20)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-Дальше попытки построить тепловые карты без кластеризации. По прежнему без Homo_sapiens и Propionibacterium_acnes.
-```{r fig.width=10, fig.height=10}
+```{r fig.width=10, fig.height=10, eval=FALSE}
+# Дальше попытки построить тепловые карты без кластеризации. По прежнему без Homo_sapiens и Propionibacterium_acnes.
 my_tibble <- relative_abundancy %>%
   mutate(across(where(is.numeric), scale)) %>% 
   arrange(-S12) %>% 
@@ -212,7 +194,58 @@ ggplot(my_tibble, aes(x = DescriptiveSpecies, y = Column, fill = Value)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+Создадим таблицы из 10 самых представленных видов
+```{r results=TRUE}
+# Создание списка таблиц
+tables_list <- lapply(names(relative_abundancy)[1:20], function(sample) {
+  df_sample <- relative_abundancy %>%
+    filter(DescriptiveSpecies != 'Homo_sapiens') %>% 
+    select(DescriptiveSpecies , !!sym(sample)) %>%
+    arrange(desc(!!sym(sample))) %>%
+    slice_head(n = 10)
+  return(df_sample)
+})
 
+names(tables_list) <- names(df)[1:20]
+# Вывод таблиц
+for (i in seq_along(tables_list)) {
+  cat("Table for Sample", names(tables_list)[i], ":\n")
+  print(tables_list[[i]])
+  cat("\n")
+}
+```
+Создадим список уникальных видов из предыдущих таблиц.
+```{r results=TRUE}
+# Объединение всех таблиц в один датафрейм
+bind_rows(tables_list, .id = "Sample") %>% 
+  select(DescriptiveSpecies) %>% 
+  unique()
+```
 
+Всего получилось 35 уникальных видов.
+
+## 4. Типичный предствитель S12
+
+Построим столбчатую диаграмму всех образцов, взяв 15 самых представленных видов в S12 (типичный представитель), построим диаграмму для всех образцов. Исключены самые представленные Homo_sapiens и  Propionibacterium_acnes.
+Логарифмическая шкала.
+
+```{r fig.width=10, fig.height=20}
+library(RColorBrewer)
+my_palette <- colorRampPalette(brewer.pal(20, "Set1"))
+relative_abundancy %>% 
+  filter(DescriptiveSpecies != 'Homo_sapiens' & DescriptiveSpecies !=  'Propionibacterium_acnes') %>% 
+  arrange(-S12) %>% 
+  head(15) %>%
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
+  mutate(Column = factor(Column, levels = paste0("S", 1:20))) %>%  
+  group_by(DescriptiveSpecies) %>% 
+  ggplot(aes(x = DescriptiveSpecies, y = log(Value), fill = Column)) +
+  geom_col(position = "dodge") +
+  labs(title = "Наиболее представленные виды (по S12)", x = "Виды", y = "ln(Количество)") +
+  scale_fill_discrete(name = "Sample") +
+  scale_fill_manual(values = my_palette(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() 
+```
 
 
