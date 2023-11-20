@@ -5,8 +5,10 @@
 cd /home/alexandr/Downloads/063_annotator1 && sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
 source activate alm
-export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm/bi
-scp -r oxkolpakova@pbx3:/home/oxkolpakova/scripts/BWAINDEX_FASTP_BWAMEM.nf /home/alexandr/Documents/ALM/scripts
+export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm 
+
+scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/results/kraken2* /home/alexandr/Documents/ALM/data/results/kraken2
+ 
 screen -XS <session-id> quit
 ```
 ## Загрузка референса и создание индекса
@@ -109,7 +111,7 @@ BWAMEM
 ```
 ./BWAINDEX_FASTP_BWAMEM.nf with-report report.html -with-dag -resume
 ```
-В этот раз используем только fastp с параметрами -q 20 -l 140 --trim_poly_g для очистки качества 20 и длинне ридов 140, так же обрежим поли G.
+В этот раз используем только fastp с параметрами -q 20 -l 140 --trim_poly_g для очистки качества 20 и длинне ридов 140, так же обрежем поли G.
 
 ## kraken2
 Для метагеномного анализа используем kraken2
@@ -118,17 +120,52 @@ BWAMEM
 с помощью скрипта kraken2-build
 
 ```
-/home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
+/home/oxkolpakova/programs/miniconda3/envs/alm/bin/kraken2-build --standard --max-db-size 68719476736 --threads 20 --db /srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB
 ```
 
 Проанализируем с помощью стандартной базы kraken2
 
+Не получилось загрузить базы стандартно из за ограничений по RAM, скачиваем прекомпиленные
+https://benlangmead.github.io/aws-indexes/k2
 ```
-dir_in = '/home/oxkolpakova/data/results/fastp'
-dir_out = '/home/oxkolpakova/data/results/kraken2'
-mkdir -d $dir_out
-kraken2 --db /путь_к_базе_данных --threads 20 --paired \
-    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz \
-    $dir/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz > kraken2_result.txt
+wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20231009.tar.gz
+tar -xzf k2_standard_20231009.tar.gz
+```
+kraken2 пробный запуск
+```
+read1='/home/oxkolpakova/data/results/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R1_P.fastq.gz'
+read2='/home/oxkolpakova/data/results/fastp/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_10_L00_R2_P.fastq.gz'
+out='/home/oxkolpakova/data/results/kraken2/kraken2_result.txt'
+report='/home/oxkolpakova/data/results/kraken2/kraken2_report.txt'
+database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
+NCPUS=20
+mkdir -p "$out"
+
+kraken2 \
+--db $database \
+--threads $NCPUS \
+--report $report \
+--report-zero-counts \
+--use-names \
+--memory-mapping \
+--minimum-base-quality 20 \
+--gzip-compressed \
+--paired \
+$read1 $read2 
 ```
 
+Запускаем kraken2 с помощью nextflow
+```
+./BWAINDEX_FASTP_BWAMEM_KRAKEN2.nf with-report report.html -with-dag -with-singularity -resume
+```
+А теперь bracken
+
+```
+input='/home/oxkolpakova/data/results/kraken2/202309251627_220601009_2P230329071US2S2721BX_B_neft250923_22_L00_kraken2_report.txt'
+out='/home/oxkolpakova/data/results/bracken/'
+database='/srv/50f56420-22fa-4043-91a0-7d2a1709438f/oxkolpakova/kraken2_DB'
+bracken -d $database -i $input -o $out/bracken_result.txt -r 100 -l S
+```
+
+тестируем test.fn
+./test.nf with-report report.html -with-dag -with-singularity -resume
