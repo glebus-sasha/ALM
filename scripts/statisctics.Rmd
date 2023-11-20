@@ -216,10 +216,13 @@ for (i in seq_along(tables_list)) {
 ```
 Создадим список уникальных видов из предыдущих таблиц.
 ```{r results=TRUE}
+library(kableExtra)
 # Объединение всех таблиц в один датафрейм
 bind_rows(tables_list, .id = "Sample") %>% 
   select(DescriptiveSpecies) %>% 
-  unique()
+  unique() %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = FALSE)
 ```
 
 Всего получилось 35 уникальных видов.
