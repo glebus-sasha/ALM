@@ -251,4 +251,8 @@ relative_abundancy %>%
   coord_flip() 
 ```
 
+Создание html отчета
+```{r}
+rmarkdown::render('statisctics.Rmd', output_file = '../summary/statisctics.html')
+```
 
