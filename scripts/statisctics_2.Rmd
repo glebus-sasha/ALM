@@ -1,0 +1,140 @@
+---
+title: "Almetyevsk metagenome statistics 2"
+author: "Oxana Kolpakova"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	results = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+## 1. Обработка данных fastq
+
+- fastp -q 20 -l 50  --trim_poly_g
+
+- kraken2 Confidence 0.1, Minimum Base Quality 20, Standart DB (Galaxy) 
+
+- Kraken taxonomic report (Galaxy)
+
+
+## 2. Фильтрация
+
+```{r}
+data <- read.csv2('C:/ALM/summary/kraken_resume_2.csv')
+```
+
+```{r}
+data_1 <- data %>% 
+  mutate(DescriptiveSpecies = sapply(strsplit(data$X.ID, "\\|"), function(x) tail(x, 1))) %>% 
+  select(-X.ID)
+data_1 %>% glimpse()
+```
+
+
+Определим процентное содержания фрагментов генома человека в образцах.
+```{r results = TRUE}
+
+sum_by_sample <- data_1 %>%
+  select(starts_with("S")) %>%
+  summarise_all(sum)
+
+# Шаг 2: Выбрать только строки, где DescriptiveSpecies равен "Homo_sapiens"
+homo_sapiens_data <- data_1 %>%
+  filter(DescriptiveSpecies == "s__Homo_sapiens")
+
+# Шаг 3: Просуммировать значения для каждого образца (S1 - S22)
+sum_homo_sapiens <- homo_sapiens_data %>%
+  select(starts_with("S")) %>%
+  summarise_all(sum)
+
+# Шаг 4: Поделить значения из шага 3 на значения из шага 1
+result <- sum_homo_sapiens / sum_by_sample 
+human_ratio <- t(data.frame(result)) %>% 
+  data.frame() %>% 
+  mutate(Sample = names(result),
+         human_ratio = result) %>% 
+  select('.', Sample) %>% 
+  tibble() %>% 
+  rename('Human_ratio' = '.') %>% 
+  select(Sample, Human_ratio)
+
+print.data.frame(human_ratio)
+```
+Контаминации фрагментами генома человека незначительна.
+
+## 3. Определение самых представленных видов.
+
+Создадим таблицы из 15 самых представленных видов
+```{r results=TRUE}
+# Создание списка таблиц
+tables_list <- lapply(names(data_1)[1:4], function(sample) {
+  df_sample <- data_1 %>%
+    filter(str_detect(DescriptiveSpecies, '^s__')) %>% 
+    filter(DescriptiveSpecies != 's__Homo_sapiens') %>%
+    select(DescriptiveSpecies , !!sym(sample)) %>%
+    arrange(desc(!!sym(sample))) %>%
+    slice_head(n = 15)
+  return(df_sample)
+})
+
+names(tables_list) <- names(df)[1:4]
+# Вывод таблиц
+for (i in seq_along(tables_list)) {
+  cat("Table for Sample", names(tables_list)[i], ":\n")
+  print(tables_list[[i]])
+  cat("\n")
+}
+```
+Создадим список уникальных видов из предыдущих таблиц.
+```{r results=TRUE}
+library(kableExtra)
+# Объединение всех таблиц в один датафрейм
+bind_rows(tables_list, .id = "Sample") %>% 
+  select(DescriptiveSpecies) %>% 
+  unique() %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Всего получилось 22 уникальных вида.
+
+## 4. Типичный предствитель S1
+
+Построим столбчатую диаграмму всех образцов, взяв 15 самых представленных видов в S1 (типичный представитель), построим диаграмму для всех образцов. Исключен Homo_sapiens.
+
+```{r fig.width=10, fig.height=20}
+library(RColorBrewer)
+my_palette <- colorRampPalette(brewer.pal(20, "Dark2"))
+data_1 %>% 
+  filter(DescriptiveSpecies != 's__Homo_sapiens') %>% 
+  arrange(-S1) %>% 
+  head(15) %>%
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
+  mutate(Column = factor(Column, levels = paste0("S", 1:20))) %>%  
+  group_by(DescriptiveSpecies) %>% 
+  ggplot(aes(x = DescriptiveSpecies, y = Value, fill = Column)) +
+  geom_col(position = "dodge") +
+  labs(title = "Наиболее представленные виды (по S1)", x = "Виды", y = "Количество", fill = "Sample") +
+  scale_fill_manual(values = my_palette(4)) +
+  coord_flip() 
+```
+
+Создание html отчета
+```{r}
+rmarkdown::render('statisctics_2.Rmd', output_file = '../summary/statisctics_2.html')
+```
+
+
+
+
