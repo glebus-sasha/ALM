@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(kableExtra)
 ```
 
 ## 1. Обработка данных fastq
@@ -38,7 +39,8 @@ data <- read.csv2('C:/ALM/summary/kraken_resume_2.csv')
 data_1 <- data %>% 
   mutate(DescriptiveSpecies = sapply(strsplit(data$X.ID, "\\|"), function(x) tail(x, 1))) %>% 
   select(-X.ID)
-data_1 %>% glimpse()
+data_1 %>% 
+  glimpse() 
 ```
 
 
@@ -69,42 +71,46 @@ human_ratio <- t(data.frame(result)) %>%
   rename('Human_ratio' = '.') %>% 
   select(Sample, Human_ratio)
 
-print.data.frame(human_ratio)
+# print.data.frame(human_ratio)
+human_ratio %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = TRUE)
 ```
 Контаминации фрагментами генома человека незначительна.
 
 ## 3. Определение самых представленных видов.
 
-Создадим таблицы из 15 самых представленных видов
+Создадим таблицу из 15 самых представленных видов
+
 ```{r results=TRUE}
 # Создание списка таблиц
 tables_list <- lapply(names(data_1)[1:4], function(sample) {
   df_sample <- data_1 %>%
     filter(str_detect(DescriptiveSpecies, '^s__')) %>% 
     filter(DescriptiveSpecies != 's__Homo_sapiens') %>%
-    select(DescriptiveSpecies , !!sym(sample)) %>%
+    select(DescriptiveSpecies, !!sym(sample)) %>%
     arrange(desc(!!sym(sample))) %>%
     slice_head(n = 15)
   return(df_sample)
 })
 
-names(tables_list) <- names(df)[1:4]
-# Вывод таблиц
-for (i in seq_along(tables_list)) {
-  cat("Table for Sample", names(tables_list)[i], ":\n")
-  print(tables_list[[i]])
-  cat("\n")
-}
+# Объединение таблиц в одну
+combined_table <- bind_cols(tables_list)
+
+# Вывод объединенной таблицы с помощью kable
+knitr::kable(combined_table, "html") %>%
+  kableExtra::kable_styling("striped", full_width = TRUE, latex_options = "scale_down", font_size = 10)
+
 ```
+
 Создадим список уникальных видов из предыдущих таблиц.
 ```{r results=TRUE}
-library(kableExtra)
 # Объединение всех таблиц в один датафрейм
 bind_rows(tables_list, .id = "Sample") %>% 
   select(DescriptiveSpecies) %>% 
   unique() %>% 
   kable(format = "html") %>%
-  kable_styling(full_width = FALSE)
+  kable_styling(full_width = TRUE)
 ```
 
 Всего получилось 22 уникальных вида.
@@ -144,8 +150,7 @@ library(tidyverse)
 library(phyloseq)
 
 # Выберем нужные столбцы для анализа
-taxonomy_data <- data %>%
-  select(X.ID, S1, S2, S3, S4)
+taxonomy_data <- data
 
 # Преобразование данных для otu_table
 otu_table <- taxonomy_data[, -1] %>% 
@@ -171,7 +176,9 @@ physeq = phyloseq(otu_table, sum_tax_table, sample_data)
 alpha_diversity <- estimate_richness(physeq, measures = c("Shannon", "Simpson", "Chao1", "Observed", "InvSimpson"))
 
 
-alpha_diversity
+alpha_diversity %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = TRUE)
 ```
 
 Индекс Шеннона, предоставляет меру разнообразия внутри отдельных образцов. Чем выше значение индекса Шеннона, тем больше разнообразие в сообществе.
@@ -208,7 +215,7 @@ plot_ordination(physeq, pcoa_result) +
        y = "PCoA2",
        color = "Образец")
 ```
-```{r message=FALSE, warning=FALSE, results=TRUE}
+```{r, echo=FALSE}
 # Проведение анализа NMDS
 nmds_result <- ordinate(physeq, method = "NMDS", distance = "bray")
 
@@ -223,5 +230,6 @@ plot_ordination(physeq, nmds_result) +
        y = "NMDS2",
        color = "Образец")
 ```
+
 
 
