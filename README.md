@@ -169,3 +169,16 @@ bracken -d $database -i $input -o $out/bracken_result.txt -r 100 -l S
 
 тестируем test.fn
 ./test.nf with-report report.html -with-dag -with-singularity -resume
+
+
+## Galaxy https://usegalaxy.org/workflows/list
+1. Fastp
+```
+ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_5061d16a-b100-43c1-bb38-68a30e1afe22.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_c37a61dd-9ddf-4195-a377-8443e35189e3.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' &&    fastp  --thread ${GALAXY_SLOTS:-1} --report_title 'fastp report for 202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz'   -i '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' -o first.fastq.gz  -I '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' -O second.fastq.gz       --detect_adapter_for_pe                 -q 20      -l 50                     &&  mv first.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_b01c9a77-43bc-4a52-be24-9158b1ec63c9.dat' && mv second.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_ee300622-ac1c-49e4-a431-2b96854e77df.dat'
+```
+
+3. Bowtie2
+4. Assembly with MEGAHIT
+5. Assembly	metaSPAdes
+   on Contigs
+6.
