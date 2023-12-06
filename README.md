@@ -190,3 +190,10 @@ mkdir -p paired_reads1 && ln -s '/jetstream2/scratch/main/jobs/54069093/inputs/d
 ```
 
 Prokka on Contigs
+
+
+## krona after kraken2 (Galaxy)
+./kreport2krona.py -r Galaxy.kreport -o Galaxy.krona.txt --no-intermediate-ranks
+ktImportText Galaxy.krona.txt -o Galaxy.krona.html
+
+
