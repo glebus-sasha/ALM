@@ -178,12 +178,9 @@ bracken -d $database -i $input -o $out/bracken_result.txt -r 100 -l S
 ```
 ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_5061d16a-b100-43c1-bb38-68a30e1afe22.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_c37a61dd-9ddf-4195-a377-8443e35189e3.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' &&    fastp  --thread ${GALAXY_SLOTS:-1} --report_title 'fastp report for 202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz'   -i '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' -o first.fastq.gz  -I '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' -O second.fastq.gz       --detect_adapter_for_pe                 -q 20      -l 50                     &&  mv first.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_b01c9a77-43bc-4a52-be24-9158b1ec63c9.dat' && mv second.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_ee300622-ac1c-49e4-a431-2b96854e77df.dat'
 ```
-2. Bowtie2 (почистить от контаминации чеоовеком, не получилось запустить, ошибка)
-3. Assembly with MEGAHIT
-```
-if [[ -n "$GALAXY_MEMORY_MB" ]]; then MEMORY="-m $((GALAXY_MEMORY_MB * 1024))"; fi;  megahit --num-cpu-threads ${GALAXY_SLOTS:-4} -1 '/scratch4/nekrut/galaxy/main/staging/54068902/inputs/dataset_f46a33e4-418c-449f-945b-8db8872ee1ea.dat' -2 '/scratch4/nekrut/galaxy/main/staging/54068902/inputs/dataset_b4664554-7b5a-4626-9b3b-eb9d1316ca13.dat' --min-count '2' --k-list '21,29,39,59,79,99,119,141'  --bubble-level '2' --merge-level '20,0.95' --prune-level '2' --prune-depth '2' --disconnect-ratio '0.1' --low-local-ratio '0.2' --cleaning-rounds '5'   --min-contig-len '200' $MEMORY && cat megahit_out/log
-```
   
+2.
+3.
 4. Assembly	metaSPAdes
 ```
 mkdir -p paired_reads1 && ln -s '/jetstream2/scratch/main/jobs/54069093/inputs/dataset_23ac917e-2891-47e0-8b6a-aeeafbd3c343.dat' 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_1_output.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54069093/inputs/dataset_43fdc7f1-bf77-44b6-9c3f-2cb7dc144808.dat' 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_2_output.fastq.gz' &&       export OMP_THREAD_LIMIT=${GALAXY_SLOTS:-4} &&  metaspades.py -o 'output'  -t ${GALAXY_SLOTS:-4} -m $((${GALAXY_MEMORY_MB:-8192}/1024))   --pe-1 1 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_1_output.fastq.gz' --pe-2 1 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_2_output.fastq.gz' --pe-or 1 fr
