@@ -1,0 +1,202 @@
+---
+title: "Almetyevsk metagenome statistics 2"
+author: "Oxana Kolpakova"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	results = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(kableExtra)
+```
+
+## 1. Предобработка
+
+Статистика для файла Kraken_taxonomic_report_S1S2S3S4.csv
+
+- fastp -q 20 -l 50  --trim_poly_g
+
+- kraken2 Confidence 0.1, Minimum Base Quality 20, Standart DB (Galaxy) 
+
+- Kraken taxonomic report (Galaxy)
+
+
+## 2. Фильтрация
+
+```{r}
+data <- read_csv2('C:/ALM/data/results/Kraken_taxonomic_report/Kraken_taxonomic_report_S1S2S3S4.csv') %>% 
+  rename(S1 = `Report: Kraken2 on data 2744 and data 2743`,
+         S2 = `Report: Kraken2 on data 2748 and data 2747`,
+         S3 = `Report: Kraken2 on data 2754 and data 2753`,
+         S4 = `Report: Kraken2 on data 2758 and data 2757`)
+```
+
+
+
+```{r}
+data[grep('*homo_*', data$`#ID`),]
+```
+Контоминация человеком не обнаружена. Фильтрация не проводилась.
+
+## 3. Определение самых представленных видов.
+
+Создадим таблицу из 15 самых представленных видов
+
+```{r results=TRUE}
+# Создание списка таблиц
+tables_list <- lapply(names(data)[2:5], function(sample) {
+  df_sample <- data %>%
+    select(`#ID`, !!sym(sample)) %>%
+    arrange(desc(!!sym(sample))) %>%
+    slice_head(n = 15)
+  return(df_sample)
+})
+
+# Объединение таблиц в одну
+combined_table <- bind_cols(tables_list)
+
+# Вывод объединенной таблицы с помощью kable
+knitr::kable(combined_table, "html") %>%
+  kableExtra::kable_styling("striped", full_width = TRUE, latex_options = "scale_down", font_size = 10)
+
+```
+
+Создадим список уникальных видов из предыдущих таблиц.
+```{r results=TRUE}
+# Объединение всех таблиц в один датафрейм
+bind_rows(tables_list, .id = "Sample") %>% 
+  select(`#ID`) %>% 
+  unique() %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = TRUE)
+```
+
+Всего получилось 22 уникальных вида.
+
+
+```{r}
+## 4. Типичный предствитель S1
+
+#Построим столбчатую диаграмму всех образцов, взяв 15 самых представленных видов в S1 #(типичный представитель), построим диаграмму для всех образцов. Исключен Homo_sapiens.
+```
+
+```{r fig.width=10, fig.height=20, eval=FALSE}
+library(RColorBrewer)
+my_palette <- colorRampPalette(brewer.pal(20, "Dark2"))
+data %>% 
+  filter(`#ID` != 's__Homo_sapiens') %>% 
+  arrange(-S1) %>% 
+  head(15) %>%
+  pivot_longer(cols = starts_with("S"), names_to = "Column", values_to = "Value") %>% 
+  mutate(Column = factor(Column, levels = paste0("S", 1:20))) %>%  
+  group_by(`#ID`) %>% 
+  ggplot(aes(x = `#ID`, y = Value, fill = Column)) +
+  geom_col(position = "dodge") +
+  labs(title = "Наиболее представленные виды (по S1)", x = "Виды", y = "Количество", fill = "Sample") +
+  scale_fill_manual(values = my_palette(4)) +
+  coord_flip() 
+```
+
+
+
+## 4. Расчёт индексов альфа и бета-разнообразия в сообществах для выявления различий/сходств в составах сообществ. Построение PCoA/NMDS графиков на основании расстояний Брея-Кертиса.
+```{r}
+data %>% glimpse()
+```
+
+```{r}
+# Загрузка необходимых библиотек
+library(vegan)
+library(tidyverse)
+library(phyloseq)
+
+# Выберем нужные столбцы для анализа
+taxonomy_data <- data
+
+# Преобразование данных для otu_table
+otu_table <- taxonomy_data[, -1] %>% 
+  as.matrix() %>% 
+  otu_table(taxa_are_rows = TRUE)
+
+# Создание tax_table из столбца #ID
+sum_tax_table <- taxonomy_data$`#ID` %>% 
+  as.matrix() %>% 
+  tax_table()
+
+# Создание sample_data из имен столбцов
+sample_data <- sample_data(taxonomy_data) %>% names()
+
+# Создание объекта phyloseq
+physeq = phyloseq(otu_table, sum_tax_table, sample_data)
+
+```
+
+
+```{r results = TRUE}
+# Расчет индексов разнообразия
+alpha_diversity <- estimate_richness(physeq, measures = c("Shannon", "Simpson", "Chao1", "Observed", "InvSimpson"))
+
+
+alpha_diversity %>% 
+  kable(format = "html") %>%
+  kable_styling(full_width = TRUE)
+```
+
+Индекс Шеннона, предоставляет меру разнообразия внутри отдельных образцов. Чем выше значение индекса Шеннона, тем больше разнообразие в сообществе.
+
+Simpson's Diversity Index (Индекс Симпсона) измеряет вероятность того, что 2 рида, выбранные случайным образом, принадлежат к разным таксонам.
+
+Chao1 (Индекс Чао) оценивает общее количество таксонов в сообществе, включая те, которые не были обнаружены.
+
+Observed OTUs (Наблюдаемые OTU) подсчитывает количество уникальных таксонов в образце.
+
+Inverse Simpson's Index (Инверсия индекса Симпсона) - мера доминирования, обратная к индексу Симпсона. Более высокие значения указывают на большее доминирование.
+
+
+```{r message=FALSE, warning=FALSE, results=TRUE}
+# Расчет бета-разнообразия с использованием расстояния Брея-Кертиса
+beta_div <- phyloseq::distance(physeq, method = "bray")
+
+# Проведение анализа PCoA
+pcoa_result <- ordinate(physeq, method = "PCoA", distance = "bray")
+
+# Создание имени для раскраски
+Sample <- physeq@otu_table@.Data %>% colnames()
+
+# Визуализация PCoA графика с подписями
+plot_ordination(physeq, pcoa_result) +
+  geom_point(aes(color = Sample)) +
+  labs(title = "PCoA график на основе расстояний Брея-Кертиса",
+       x = "PCoA1",
+       y = "PCoA2",
+       color = "Образец")
+```
+```{r, echo=FALSE}
+# Проведение анализа NMDS
+nmds_result <- ordinate(physeq, method = "NMDS", distance = "bray")
+
+# Создание имени для раскраски
+Sample <- physeq@otu_table@.Data %>% colnames()
+
+# Визуализация NMDS графика с подписями
+plot_ordination(physeq, nmds_result) +
+  geom_point(aes(color = Sample)) +
+  labs(title = "NMDS график на основе расстояний Брея-Кертиса",
+       x = "NMDS1",
+       y = "NMDS2",
+       color = "Образец")
+```
+
+
+
