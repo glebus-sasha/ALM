@@ -186,24 +186,45 @@ ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_5061d16a-b100-43c1-
 kraken2 --threads ${GALAXY_SLOTS:-1} --db '/cvmfs/data.galaxyproject.org/managed/kraken2_databases/k2_standard_20210517'    --paired '/scratch4/nekrut/galaxy/main/staging/54212028/inputs/dataset_84304d8e-b002-4828-9009-3bb90db5e19a.dat' '/scratch4/nekrut/galaxy/main/staging/54212028/inputs/dataset_865cb6ff-d23a-4553-80e2-02247ab57ebb.dat'   --confidence '0.1' --minimum-base-quality '0' --minimum-hit-groups '2'    --report '/scratch4/nekrut/galaxy/main/staging/54212028/outputs/dataset_76b004a6-ab6b-49c3-9684-f03229aedf0c.dat'     > '/scratch4/nekrut/galaxy/main/staging/54212028/outputs/dataset_71208db0-67d4-4602-9fe2-9b16d6d35da5.dat'
 ```
 
-2.1.1 Kraken taxonomic report
+2.3 Kraken taxonomic report
 
 ```
 ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_76b004a6-ab6b-49c3-9684-f03229aedf0c.dat" "Report: Kraken2 on data 2744 and data 2743" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_38ca50e0-a39e-407f-8199-be23bede1781.dat" "Report: Kraken2 on data 2748 and data 2747" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_d4d54f55-52a9-48fe-bf8d-f11ab8369dd5.dat" "Report: Kraken2 on data 2754 and data 2753" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_b08cc66c-7d5d-409a-b9a8-854dd189dbf1.dat" "Report: Kraken2 on data 2758 and data 2757" &&  export KRAKEN_DB_PATH='/cvmfs/data.galaxyproject.org/managed/kraken_database/bacteria' && python '/jetstream2/scratch/main/jobs/54212148/tool_files/kraken_taxonomy_report.py'  --db 'Bacteria'  --header-line    --intermediate --sanitize-names   --output '/jetstream2/scratch/main/jobs/54212148/outputs/dataset_c7a9e954-a06d-493b-9220-45eeaa24a24b.dat'   'Report: Kraken2 on data 2744 and data 2743' 'Report: Kraken2 on data 2748 and data 2747' 'Report: Kraken2 on data 2754 and data 2753' 'Report: Kraken2 on data 2758 and data 2757'
 ```
-
-2.2. BWA-MEM2
+3.фильтрация от фрагментов генома человека
+3.1 BWA-MEM2
 
 ```
 set -o | grep -q pipefail && set -o pipefail;  ln -s '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_c1887965-2ff3-44ce-b942-b13563a87253.dat' 'localref.fa' && bwa-mem2 index 'localref.fa' &&    bwa-mem2 mem -t "${GALAXY_SLOTS:-1}" -v 1                 'localref.fa' '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_7adb0438-470d-4694-abf4-8beca62555b5.dat' '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_f78b0059-53d6-46ab-9af2-715b33b2c05a.dat'  | samtools sort -@${GALAXY_SLOTS:-2} -T "${TMPDIR:-.}" -O bam -o '/jetstream2/scratch/main/jobs/54212240/outputs/dataset_3fd22041-5f27-4e4b-a6ec-f68bd54a2abf.dat'
 ```
+3.2 Samtools view on : filtered alignments
 
-2.3 Assembly	metaSPAdes
+```
+addthreads=${GALAXY_SLOTS:-1} && (( addthreads-- )) && addmemory=${GALAXY_MEMORY_MB_PER_SLOT:-768} && ((addmemory=addmemory*75/100)) && ln -s '/corral4/main/objects/3/f/d/dataset_3fd22041-5f27-4e4b-a6ec-f68bd54a2abf.dat' infile && ln -s '/corral4/main/objects/_metadata_files/9/4/c/metadata_94c66953-0bdf-467b-a901-99cfc3ad3a13.dat' infile.bai && samtools view -@ $addthreads -b -f 4 -F 0 -G 0 -o outfile infile
+```
+3.2 bedtools Convert from BAM to FastQ
+
+```
+3.3 bedtools bamtofastq  -i '/corral4/main/objects/a/d/f/dataset_adfe7374-5395-4a6a-b5b4-923052416272.dat' -fq '/corral4/main/jobs/054/215/54215655/outputs/dataset_97528bd9-c93e-4b3a-8dac-564ee1938526.dat' -fq2 '/corral4/main/jobs/054/215/54215655/outputs/dataset_33873c4b-2912-453d-a0cd-abe9590f98ef.dat'ln -s '/corral4/main/objects/_metadata_files/9/4/c/metadata_94c66953-0bdf-467b-a901-99cfc3ad3a13.dat' infile.bai &&               samtools view -@ $addthreads -b  -f 4 -F 0 -G 0    -o outfile      infile
+```
+
+4. Assembly	metaSPAdes сборка контигов и скафолдов
 ```
 mkdir -p paired_reads1 && ln -s '/jetstream2/scratch/main/jobs/54212306/inputs/dataset_b433568d-2829-4be3-b8f6-d4b0afec0d5e.dat' 'paired_reads1/fastP_S4_R1.fastq.gz.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54212306/inputs/dataset_aa3beb4a-b89a-4d14-9d1f-86b5cf0b3d7d.dat' 'paired_reads1/fastP_S4_R2.fastq.gz.fastq.gz' &&       export OMP_THREAD_LIMIT=${GALAXY_SLOTS:-4} &&  metaspades.py -o 'output'  -t ${GALAXY_SLOTS:-4} -m $((${GALAXY_MEMORY_MB:-8192}/1024))   --pe-1 1 'paired_reads1/fastP_S4_R1.fastq.gz.fastq.gz' --pe-2 1 'paired_reads1/fastP_S4_R2.fastq.gz.fastq.gz' --pe-or 1 fr
 ```
 
-Prokka on Contigs
+5.1
+Prokka on Contigs аннотация контигов (NCBI DB-Yes)
+
+```
+prokka --cpus ${GALAXY_SLOTS:-8} --quiet --outdir outdir --prefix prokka --increment 1 --gffver 3 --compliant --kingdom Bacteria --gcode 11 --metagenome --evalue 1e-06 /jetstream2/scratch/main/jobs/54218001/inputs/dataset_a349fe37-e666-49c2-a6f8-0100fc6fbab6.dat
+```
+
+5.2  Antismash аннотация вторичных метаболитов (можно на данных metaSPAdes/Prokka; здесь на metaSPAdes)
+
+```
+export PYTHONWARNINGS="ignore::FutureWarning" && ln -s '/jetstream2/scratch/main/jobs/54220144/inputs/dataset_a349fe37-e666-49c2-a6f8-0100fc6fbab6.dat' input_tempfile.fasta && mkdir -p '/jetstream2/scratch/main/jobs/54220144/outputs/dataset_f14fb258-c517-439e-a15f-eca3a9b62f88_files' && antismash --cpus "${GALAXY_SLOTS:-12}" --taxon 'bacteria' --genefinding-tool prodigal --cb-subclusters --cb-knownclusters --smcog-trees --tta-threshold 0.65 --asf --rre --logfile XXXX --minlength 1000 --hmmdetection-strictness relaxed --cb-nclusters 10 --cb-min-homology-scale 0.0 --rre-cutoff 25.0 --rre-minlength 50 input_tempfile.fasta && cp input_tempfile/index.html '/jetstream2/scratch/main/jobs/54220144/outputs/dataset_f14fb258-c517-439e-a15f-eca3a9b62f88.dat' 2> /dev/null && cp -r input_tempfile/* '/jetstream2/scratch/main/jobs/54220144/outputs/dataset_f14fb258-c517-439e-a15f-eca3a9b62f88_files'
+```
 
 
 ## krona after kraken2 (Galaxy)
