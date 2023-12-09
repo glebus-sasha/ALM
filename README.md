@@ -208,6 +208,7 @@ Prokka on Contigs
 
 ## krona after kraken2 (Galaxy)
 ./kreport2krona.py -r Galaxy.kreport -o Galaxy.krona.txt --no-intermediate-ranks
+
 ktImportText Galaxy.krona.txt -o Galaxy.krona.html
 
 
