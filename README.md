@@ -175,23 +175,32 @@ bracken -d $database -i $input -o $out/bracken_result.txt -r 100 -l S
 данные секвенирования от 13.11 (4 образца)
 
 1. Fastp (-q 20, -l 50)
+
 ```
 ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_5061d16a-b100-43c1-bb38-68a30e1afe22.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54067920/inputs/dataset_c37a61dd-9ddf-4195-a377-8443e35189e3.dat' '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' &&    fastp  --thread ${GALAXY_SLOTS:-1} --report_title 'fastp report for 202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz'   -i '202311131707_210701004_A_neft_13_11_2023_3_L00_R1_fq_gz.fastq.gz' -o first.fastq.gz  -I '202311131707_210701004_A_neft_13_11_2023_3_L00_R2_fq_gz_R2.fastq.gz' -O second.fastq.gz       --detect_adapter_for_pe                 -q 20      -l 50                     &&  mv first.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_b01c9a77-43bc-4a52-be24-9158b1ec63c9.dat' && mv second.fastq.gz '/jetstream2/scratch/main/jobs/54067920/outputs/dataset_ee300622-ac1c-49e4-a431-2b96854e77df.dat'
 ```
   
-2.Kraken2(-confidence '0.1', db Standard)
+2.1 Kraken2(-confidence '0.1', db Standard)
+
 ```
 kraken2 --threads ${GALAXY_SLOTS:-1} --db '/cvmfs/data.galaxyproject.org/managed/kraken2_databases/k2_standard_20210517'    --paired '/scratch4/nekrut/galaxy/main/staging/54212028/inputs/dataset_84304d8e-b002-4828-9009-3bb90db5e19a.dat' '/scratch4/nekrut/galaxy/main/staging/54212028/inputs/dataset_865cb6ff-d23a-4553-80e2-02247ab57ebb.dat'   --confidence '0.1' --minimum-base-quality '0' --minimum-hit-groups '2'    --report '/scratch4/nekrut/galaxy/main/staging/54212028/outputs/dataset_76b004a6-ab6b-49c3-9684-f03229aedf0c.dat'     > '/scratch4/nekrut/galaxy/main/staging/54212028/outputs/dataset_71208db0-67d4-4602-9fe2-9b16d6d35da5.dat'
 ```
 
-3.Kraken taxonomic report
+2.1.1 Kraken taxonomic report
+
 ```
 ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_76b004a6-ab6b-49c3-9684-f03229aedf0c.dat" "Report: Kraken2 on data 2744 and data 2743" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_38ca50e0-a39e-407f-8199-be23bede1781.dat" "Report: Kraken2 on data 2748 and data 2747" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_d4d54f55-52a9-48fe-bf8d-f11ab8369dd5.dat" "Report: Kraken2 on data 2754 and data 2753" && ln -s "/jetstream2/scratch/main/jobs/54212148/inputs/dataset_b08cc66c-7d5d-409a-b9a8-854dd189dbf1.dat" "Report: Kraken2 on data 2758 and data 2757" &&  export KRAKEN_DB_PATH='/cvmfs/data.galaxyproject.org/managed/kraken_database/bacteria' && python '/jetstream2/scratch/main/jobs/54212148/tool_files/kraken_taxonomy_report.py'  --db 'Bacteria'  --header-line    --intermediate --sanitize-names   --output '/jetstream2/scratch/main/jobs/54212148/outputs/dataset_c7a9e954-a06d-493b-9220-45eeaa24a24b.dat'   'Report: Kraken2 on data 2744 and data 2743' 'Report: Kraken2 on data 2748 and data 2747' 'Report: Kraken2 on data 2754 and data 2753' 'Report: Kraken2 on data 2758 and data 2757'
 ```
 
-4. Assembly	metaSPAdes
+2.2. BWA-MEM2
+
 ```
-mkdir -p paired_reads1 && ln -s '/jetstream2/scratch/main/jobs/54069093/inputs/dataset_23ac917e-2891-47e0-8b6a-aeeafbd3c343.dat' 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_1_output.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54069093/inputs/dataset_43fdc7f1-bf77-44b6-9c3f-2cb7dc144808.dat' 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_2_output.fastq.gz' &&       export OMP_THREAD_LIMIT=${GALAXY_SLOTS:-4} &&  metaspades.py -o 'output'  -t ${GALAXY_SLOTS:-4} -m $((${GALAXY_MEMORY_MB:-8192}/1024))   --pe-1 1 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_1_output.fastq.gz' --pe-2 1 'paired_reads1/fastp_on_data_2236_and_data_2235:_Read_2_output.fastq.gz' --pe-or 1 fr
+set -o | grep -q pipefail && set -o pipefail;  ln -s '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_c1887965-2ff3-44ce-b942-b13563a87253.dat' 'localref.fa' && bwa-mem2 index 'localref.fa' &&    bwa-mem2 mem -t "${GALAXY_SLOTS:-1}" -v 1                 'localref.fa' '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_7adb0438-470d-4694-abf4-8beca62555b5.dat' '/jetstream2/scratch/main/jobs/54212240/inputs/dataset_f78b0059-53d6-46ab-9af2-715b33b2c05a.dat'  | samtools sort -@${GALAXY_SLOTS:-2} -T "${TMPDIR:-.}" -O bam -o '/jetstream2/scratch/main/jobs/54212240/outputs/dataset_3fd22041-5f27-4e4b-a6ec-f68bd54a2abf.dat'
+```
+
+2.3 Assembly	metaSPAdes
+```
+mkdir -p paired_reads1 && ln -s '/jetstream2/scratch/main/jobs/54212306/inputs/dataset_b433568d-2829-4be3-b8f6-d4b0afec0d5e.dat' 'paired_reads1/fastP_S4_R1.fastq.gz.fastq.gz' &&  ln -s '/jetstream2/scratch/main/jobs/54212306/inputs/dataset_aa3beb4a-b89a-4d14-9d1f-86b5cf0b3d7d.dat' 'paired_reads1/fastP_S4_R2.fastq.gz.fastq.gz' &&       export OMP_THREAD_LIMIT=${GALAXY_SLOTS:-4} &&  metaspades.py -o 'output'  -t ${GALAXY_SLOTS:-4} -m $((${GALAXY_MEMORY_MB:-8192}/1024))   --pe-1 1 'paired_reads1/fastP_S4_R1.fastq.gz.fastq.gz' --pe-2 1 'paired_reads1/fastP_S4_R2.fastq.gz.fastq.gz' --pe-or 1 fr
 ```
 
 Prokka on Contigs
