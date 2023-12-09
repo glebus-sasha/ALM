@@ -207,8 +207,51 @@ Prokka on Contigs
 
 
 ## krona after kraken2 (Galaxy)
+
+Перед запуском крона, нужно объединить файлы с помощью
+
+```
+combine_kreports -r Report_Kraken2_S1* -0 Galaxy.kreport
+```
+
+Затем строим krona
+
+```
 ./kreport2krona.py -r Galaxy.kreport -o Galaxy.krona.txt --no-intermediate-ranks
-
 ktImportText Galaxy.krona.txt -o Galaxy.krona.html
+```
 
 
+##GAPSEQ with nextflow
+
+Не получилось отладить
+```
+./gapseq.nf with-report report.html -with-dag -resume -with-docker
+./gapseq.nf -with-docker
+```
+
+
+Поэтому используем докер на компе
+```
+sudo docker run -it --rm --name gapseq_example1 -h gapseq_container -v /media/alexandr/KINGSTON/meta_SPAdes/:/opt/static cdiener/gapseq /bin/bash 
+cd opt/static/
+./for_gapseq_1.sh
+```
+
+```
+sudo docker run -it --rm --name gapseq_example2 -h gapseq_container -v /media/alexandr/KINGSTON/meta_SPAdes/:/opt/static cdiener/gapseq /bin/bash 
+cd opt/static/
+./for_gapseq_2.sh
+```
+
+```
+sudo docker run -it --rm --name gapseq_example3 -h gapseq_container -v /media/alexandr/KINGSTON/meta_SPAdes/:/opt/static cdiener/gapseq /bin/bash 
+cd opt/static/
+./for_gapseq_3.sh
+```
+
+```
+sudo docker run -it --rm --name gapseq_example4 -h gapseq_container -v /media/alexandr/KINGSTON/meta_SPAdes/:/opt/static cdiener/gapseq /bin/bash 
+cd opt/static/
+./for_gapseq_4.sh
+```
