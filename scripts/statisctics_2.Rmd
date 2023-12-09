@@ -2,7 +2,8 @@
 title: "Almetyevsk metagenome statistics 2"
 author: "Oxana Kolpakova"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
