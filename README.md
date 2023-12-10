@@ -4,10 +4,15 @@
 ```
 cd /home/alexandr/Downloads/063_annotator1 && sudo openvpn externalwork3-client.conf
 ssh oxkolpakova@pbx3
-source activate alm
+conda activate alm
 export PATH=$PATH:/home/oxkolpakova/programs/miniconda3/envs/alm 
 
+conda install -c bioconda singularity
+
+
 scp -r oxkolpakova@pbx3:/home/oxkolpakova/data/results/kraken2* /home/alexandr/Documents/ALM/data/results/kraken2
+scp -r /home/alexandr/Downloads/pmitev_uppmax_gapseq.sif oxkolpakova@pbx3:/home/oxkolpakova/programs
+/media/alexandr/KINGSTON/meta_SPAdes
  
 screen -XS <session-id> quit
 ```
@@ -275,4 +280,20 @@ cd opt/static/
 sudo docker run -it --rm --name gapseq_example4 -h gapseq_container -v /media/alexandr/KINGSTON/meta_SPAdes/:/opt/static cdiener/gapseq /bin/bash 
 cd opt/static/
 ./for_gapseq_4.sh
+```
+
+Комп зависает, поэтому делаем на сервере, используя докер контейнер через singularity
+
+```
+sudo singularity pull docker://cdiener/gapseq
+singularity run gapseq_latest.sif
+```
+Используем скрипт for_sing_gapseq.sh для параллельной обработки 
+metaSPAdes_S1_Contigs.fasta
+metaSPAdes_S2_Contigs.fasta
+metaSPAdes_S3_Contigs.fasta
+metaSPAdes_S4_Contigs.fasta
+с помощью gapseq. Скрипт использует логгирование, чтобы контролировать процесс выполнения.
+```
+./for_sing_gapseq.sh
 ```
