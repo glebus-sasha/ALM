@@ -1,0 +1,187 @@
+---
+title: "Нахождение продуктов после gapseq"
+author: "Oxana Kolpakova"
+date: "24 10 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	results = FALSE
+)
+```
+
+```{r}
+library(data.table)
+library(dplyr)
+library(sybil)
+library(knitr)
+library(kableExtra)
+library(DT)
+library(openxlsx)
+```
+
+Список запросов для поиска.
+
+```{r}
+# Задаем список экземпляров (S1, S2, S3, S4)
+samples <- c("S1", "S2", "S3", "S4")
+
+# Задаем общий список EC номеров
+ec_list <- c(
+  "1.14.14.13",
+  "1.13.11.25",
+  "1.13.11",
+  "1.13.11.39",
+  "1.18.1.3",
+  "1.14.14.1",
+  "1.14.18.3",
+  "1.11.1.14",
+  "1.14.15.3",
+  "1.17.99.2",
+  "1.1.1.1",
+  "1.8.4",
+  "1.7.99.4",
+  "1.8.3.1",
+  "1.9.98.1"
+)
+
+# Список продуктов
+products <- c(
+  "monooxygenases",
+  "dioxygenases",
+  "intradiol dioxygenases",
+  "extradiol dioxygenase",
+  "naphthalene dioxygenase",
+  "cytochrome P450-mediated pathway",
+  "methane monooxidases",
+  "lignin peroxidases",
+  "alkane monooxygenase",
+  "ethylbenzene dehydrogenase",
+  "alkylsuccinate synthase",
+  "sulfate reduction",
+  "nitrate reduction",
+  "sulfide oxidation",
+  "iron reduction",
+  "iron oxidation",
+  "hydrogenase [NiFe]",
+  "acetic acid synthesis, Wood-Lyngdahl",
+  "alkane hydroxylase",
+  "alcohol dehydrogenase",
+  "Methane oxygenase",
+  "Non-hemalkane monooxygenase",
+  "cytochrome P450s",
+  "alkane hydroxylase",
+  "flavin-binding monooxygenase"
+)
+```
+
+Загрузка файлов
+
+```{r}
+
+# Создаем функцию
+process_gapseq_data <- function(sample, ec_list) {
+  rds_file <- paste0("D:/gapseq/metaSPAdes_", sample, "_Contigs.RDS")
+  pathways_file <- paste0("D:/gapseq/metaSPAdes_", sample, "_Contigs-all-Pathways.tbl")
+  
+  # Чтение RDS файла и оптимизация модели
+  model <- readRDS(rds_file)
+  optimized_model <- optimizeProb(model, algorithm = "mtf")
+
+  # Чтение таблицы с Pathways
+  pathways <- read.table(pathways_file, fill = TRUE, header = TRUE, sep = "\t")
+
+  # Создание датафрейма reaction_data
+  reaction_data <- data.frame(
+    react_id = model@react_id,
+    react_name = model@react_name,
+    flux = optimized_model@fluxdist@fluxes[1:model@react_num],
+    rxn = model@react_attr$rxn,
+    name = model@react_attr$name,
+    ec = model@react_attr$ec,
+    qseqid = model@react_attr$qseqid,
+    pident = model@react_attr$pident,
+    evalue = model@react_attr$evalue,
+    bitscore = model@react_attr$bitscore,
+    qcovs = model@react_attr$qcovs,
+    pathway = model@react_attr$pathway,
+    status = model@react_attr$status,
+    pathway_status = model@react_attr$pathway.status
+  )
+
+  # Объединение данных
+  final_data <- reaction_data %>%
+    filter(ec %in% ec_list) %>%
+    left_join(pathways, by = c("pathway" = "ID"))
+
+  return(final_data)
+}
+
+# Вызовы функции для каждого экземпляра
+result_S1 <- process_gapseq_data("S1", ec_list)
+result_S2 <- process_gapseq_data("S2", ec_list)
+result_S3 <- process_gapseq_data("S3", ec_list)
+result_S4 <- process_gapseq_data("S4", ec_list)
+```
+
+```{r results=TRUE}
+# Функция для создания раскрывающейся строки
+create_collapsible_row <- function(full_text) {
+  paste0('<details><summary>', full_text, '</summary><p>', full_text, '</p></details>')
+}
+
+# Преобразование данных
+result_S1_display <- result_S1 %>%
+  mutate(name = sapply(name, create_collapsible_row))
+
+result_S2_display <- result_S2 %>%
+  mutate(name = sapply(name, create_collapsible_row))
+
+result_S3_display <- result_S3 %>%
+  mutate(name = sapply(name, create_collapsible_row))
+
+result_S4_display <- result_S4 %>%
+  mutate(name = sapply(name, create_collapsible_row))
+
+# Вывод таблицы с раскрывающимися строками
+datatable(result_S1_display, escape = FALSE) %>%
+  formatStyle(columns = 'name', cursor = 'pointer') %>%
+  formatStyle(columns = 'name', lineHeight = '25px')
+
+datatable(result_S2_display, escape = FALSE) %>%
+  formatStyle(columns = 'name', cursor = 'pointer') %>%
+  formatStyle(columns = 'name', lineHeight = '25px')
+
+datatable(result_S3_display, escape = FALSE) %>%
+  formatStyle(columns = 'name', cursor = 'pointer') %>%
+  formatStyle(columns = 'name', lineHeight = '25px')
+
+datatable(result_S4_display, escape = FALSE) %>%
+  formatStyle(columns = 'name', cursor = 'pointer') %>%
+  formatStyle(columns = 'name', lineHeight = '25px')
+```
+```{r}
+# Создание объекта, представляющего Excel-файл
+excel_file <- createWorkbook()
+
+# Добавление листов в Excel-файл
+addWorksheet(excel_file, "S1")
+writeData(excel_file, "S1", result_S1, startCol = 1, startRow = 1)
+
+addWorksheet(excel_file, "S2")
+writeData(excel_file, "S2", result_S1, startCol = 1, startRow = 1)
+
+addWorksheet(excel_file, "S3")
+writeData(excel_file, "S3", result_S1, startCol = 1, startRow = 1)
+
+addWorksheet(excel_file, "S4")
+writeData(excel_file, "S4", result_S1, startCol = 1, startRow = 1)
+
+# Сохранение Excel-файла
+saveWorkbook(excel_file, "after_gapseq.xlsx", overwrite = TRUE)
+```
+

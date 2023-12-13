@@ -288,12 +288,18 @@ cd opt/static/
 sudo singularity pull docker://cdiener/gapseq
 singularity run gapseq_latest.sif
 ```
+
 Используем скрипт for_sing_gapseq.sh для параллельной обработки 
 metaSPAdes_S1_Contigs.fasta
 metaSPAdes_S2_Contigs.fasta
 metaSPAdes_S3_Contigs.fasta
 metaSPAdes_S4_Contigs.fasta
+
 с помощью gapseq. Скрипт использует логгирование, чтобы контролировать процесс выполнения.
+
 ```
 ./for_sing_gapseq.sh
 ```
+Доля постобработки результатов gapseq используется скрипт after_gapseq.Rmd, который создает файл after_gapseq.xlsx, который переименован в metabolic_pathways.xlsx в комменческих целях
+После antismash создали таблицу secondary_metabolites.xlsx 
+
