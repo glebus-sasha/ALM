@@ -304,3 +304,6 @@ metaSPAdes_S4_Contigs.fasta
 Доля постобработки результатов gapseq используется скрипт after_gapseq.Rmd, который создает файл after_gapseq.xlsx, который переименован в metabolic_pathways.xlsx в комменческих целях
 После antismash создали таблицу secondary_metabolites.xlsx 
 
+## Contributors
+
+- Oxana Kolpakova ([@OxanaKolpakova](https://github.com/OxanaKolpakova))
